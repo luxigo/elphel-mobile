@@ -31,7 +31,10 @@ $.extend(true,Camera.prototype,{
       div: {},
       histogram: {
         isLoaded: false,
-        onload: function(e) {}
+        onload: function(e) {
+          var histogram=this;
+          histogram.camera.loaded(histogram);
+        }
       },
       onload: function() {
       }
