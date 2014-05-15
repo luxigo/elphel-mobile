@@ -1,4 +1,4 @@
-eyesis4pi_mobile
+elphel-mobile
 ================
 
-JQuery Mobile interface for Eyesis4Pi
+JQuery Mobile interface for Elphel cameras
