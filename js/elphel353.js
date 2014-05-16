@@ -28,7 +28,6 @@ $.extend(true,Camera.prototype,{
       ip: '192.168.0.9',
       master: true,
       slaves: {},
-      div: {},
       histogram: {
         isLoaded: false,
         onload: function(e) {

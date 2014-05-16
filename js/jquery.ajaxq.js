@@ -33,10 +33,11 @@
       if (ajaxq.abort) return;
       index=(index)?index:++ajaxq.index;
       ajaxq.index=index;
-      var request=$.extend(true,{},ajaxq.queue[index],{
+      var originalRequest=ajaxq.queue[index];
+      var request=$.extend(true,{},originalRequest,{
         ajaxq: ajaxq,
         index: index,
-        originalRequest: ajaxq.queue[index],
+        originalRequest: originalRequest,
         success: function() {
           var args=Array.prototype.slice.call(arguments);
           ajaxq.request_success.apply(this,args);
@@ -47,43 +48,67 @@
         }
       });
       request.context=request;
+      originalRequest.request=request
       $.ajax(request);
     },
 
-    request_success: function() {
+    request_success: function request_success() {
       var request=this;
       var ajaxq=request.ajaxq;
+      var args=Array.prototype.slice.call(arguments);
       ajaxq.processed[i]={
         request: request,
         result: args,
         error: false
       };
       if (ajaxq.abort) return;
-      var args=Array.prototype.slice.call(arguments);
       request.originalRequest.success.apply(request,args);
-      ajaxq.processed[i].done=true;
+      ajaxq.processed[request.index].originalHandlerCalled=true;
+      // original request error handler must set processed[index].done and could call request_complete asynchronously...
       if (ajaxq.abort) return;
+      ajaxq.request_complete.call(request);
       if (ajaxq.serial) {
         setTimeout(ajaxq.processOne,0);
       }
     },
 
-    request_error: function(index) {
+    request_error: function request_error() {
       var request=this;
       var ajaxq=request.ajaxq;
-      ajaxq.processed[i]={
+      var args=Array.prototype.slice.call(arguments);
+      ajaxq.processed[request.index]={
         request: request,
         result: args,
         error: true
       };
       if (ajaxq.abort) return;
-      var args=Array.prototype.slice.call(arguments);
       request.originalRequest.error.apply(request,args);
-      ajaxq.processed[i].done=true;
-      ajaxq.queue_error(request,args);
+      ajaxq.processed[request.index].originalHandlerCalled=true;
+      // original request error handler may set processed[index].done and could call request_complete asynchronously...
       if (ajaxq.abort) return;
+      ajaxq.request_complete.call(request);
       if (ajaxq.serial) {
          setTimeout(ajaxq.processOne,0);
+      }
+    },
+
+    request_complete: function request_complete() {
+      var request=this;
+      var ajaxq=request.ajaxq;
+      var count=0;
+      var error=false;
+      $.each(ajaxq.processed,function(index){
+        if (ajaxq.processed[index].done) {
+          ++count;
+          error|=ajaxq.processed[index].error;
+        }
+      });
+      if (count==ajaxq.queue.length) {
+        if (error) {
+          ajaxq.queue_error();
+        } else {
+          ajaxq.queue_success();
+        }
       }
     },
 
