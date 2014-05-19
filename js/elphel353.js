@@ -75,16 +75,14 @@ $.extend(true,Camera.prototype,{
       var cam=this;
       var id=cam.ip+'_status';
       var div=$('#'+id);
-      if (div.length) {
-        $(container).html(div.html());
-      }
-      $(container).html([
-          '<div class="camera_status" id="'+cam.ip+'_status">',
+      if (!div.length) {
+        $(container).append($([
+          '<div class="camera_status" id="'+id+'">',
           '<div class="histogram" />',
           '</div>'
-        ].join('\n')
-      );
-      $('.histogram',container).append(cam.histogram.img);
+        ].join('\n')));
+        $('.histogram',div).append(cam.histogram.img);
+      }
       return div;
     },
     panel: {}
