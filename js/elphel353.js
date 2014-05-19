@@ -26,6 +26,7 @@ function Camera(options) {
 $.extend(true,Camera.prototype,{
     defaults: {
       ip: '192.168.0.9',
+      model: 353,
       master: true,
       slaves: {},
       histogram: {
@@ -85,7 +86,11 @@ $.extend(true,Camera.prototype,{
       }
       return div;
     },
-    panel: {}
+    gps_imu_log_start: function() {
+      
+    },
+    gps_imu_log_stop: function() {
+    }
 });
 
 function Histogram(options) {  
