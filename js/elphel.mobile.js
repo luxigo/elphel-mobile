@@ -1,7 +1,9 @@
 var prefs={
+  camera_count: 26,
   camera: [
     { 
-      ip:'192.168.0.9'
+      ip:'192.168.0.220',
+      slaves: 25
     }
   ]
 }
@@ -28,21 +30,37 @@ $(document).on('pagecreate','#status',function(e){
   },0);
 
   $.each(prefs.camera,function(index,settings){
-    camera_list.push(new Camera($.extend(true,{},settings,{
-      onload: function(){
-        var camera=this;
-        camera.isLoaded=true;
-        var count=0;
-        $.each(camera_list,function(i,camera){
-          if (camera.isLoaded) {
-            ++count;
-          }
-        });
-        if (count==camera_list.length) { 
-          camera.show_status('#camera_status');
-          $.mobile.loading('hide');
-        }
+    if (settings.slaves) {
+      var ipTable=settings.ip.split('.');
+      var base=parseInt(ipTable.pop(),10);
+      var net=ipTable.join('.')+'.';
+      for (var i=0; i<=settings.slaves; ++i) {
+        addCamera($.extend(true,{},settings,{
+              ip: net+(base+i)
+        }));
       }
-    })));
+    } else {
+      addCamera(settings);
+    }
   });
 });
+
+function addCamera(settings) {
+  camera_list.push(new Camera($.extend(true,{},settings,{
+    onload: function(){
+      var camera=this;
+      camera.isLoaded=true;
+      var count=0;
+      $.each(camera_list,function(i,camera){
+        if (camera.isLoaded) {
+          ++count;
+        }
+      });
+      if (count==prefs.camera_count) { 
+        camera.show_status('#camera_status');
+        $.mobile.loading('hide');
+      }
+    }
+  })));
+}
+
