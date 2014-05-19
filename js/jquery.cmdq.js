@@ -1,17 +1,26 @@
 (function($){
 
-    function cmdq(options) {
-      if (!(this instanceof cmdq)) {
-        return new cmdq(options);
+    function CmdQ(options) {
+      if (!(this instanceof CmdQ)) {
+        return new CmdQ(options);
       }
       this.options=options;
       this.init();
     }
 
-    $.extend(true,cmdq.prototype,{
+    $.extend(true,CmdQ.prototype,{
         defaults: {
           q: [],
-          callback: function(){}
+          callback: function(){
+            console.log('cmdq empty');
+          },
+          error: function(e){
+            console.log(e);
+          },
+          mode: {
+            autorun: true,
+            running: false
+          }
         },
 
         init: function() {
@@ -19,21 +28,35 @@
         },
 
         push: function(cmd,sync) {
+          var cmdq=this;
           this.q.push({
               cmd: cmd,
               sync: sync
           });
+          if (!cmdq.mode.running && cmdq.mode.autorun) {
+            cmdq.run();
+          }
         },
 
         run: function() {
-          if (!this.length) {
-            this.callback();
+          var cmdq=this;
+          cmdq.mode.running=true;
+          if (!cmdq.length) {
+            cmdq.mode.running=false;
+            cmdq.callback();
             return:
           }
-          var job=this.shift();
-          job.cmd.call(this);
+          var job=cmdq.shift();
+          try {
+            job.cmd.call(cmdq);
+          } catch(e) {
+            console.log(e);
+            cmdq.error(e);
+          }
           if (job.sync) {
-            setTimeout(this.run,0);
+            setTimeout(function(){
+              cmdq.run.call(cmdq);
+            },0);
           }
         }
     });
