@@ -13,7 +13,7 @@ var prefs={
   }
 }
 
-var camera_group={};
+var cameraGroup_list=[];
 
 $(document).on('mobileinit',function(){
     $.extend($.mobile,{
@@ -24,7 +24,6 @@ $(document).on('mobileinit',function(){
 
 // status page
 $(document).on('pagecreate','#status',function(e){
-  console.log(e);
   setTimeout(function(){ 
     $('a#status').addClass('ui-btn-active');
     $.mobile.loading('show',{
@@ -34,79 +33,96 @@ $(document).on('pagecreate','#status',function(e){
     });
   },0);
 
-  $.each(prefs.cameras,function(group_name,group){
-    group[group_name]={
-      count: 0,
-      camera: []
-    };
-    $.each(group,function(i,settings){
-      group[group_name].count+=1+(settings.slaves||0);
+  $.each($.extend(true,{},prefs.cameras),function(groupName,cameraList){
+    var group=new CameraGroup({
+        name: groupName,
+        cameras: cameraList
     });
-    $.each(group,function(i,settings){
-      settings.group=group_name;
-      if (settings.slaves) {
-        var ipTable=settings.ip.split('.');
+  });
+});
+
+function CameraGroup(options){
+  if (!(this instanceof CameraGroup)) {
+    return new CameraGroup(options);
+  }
+  this.options=options;
+  this.init();
+  cameraGroup_list.push(this);
+}
+
+$.extend(true,CameraGroup.prototype,{
+  defaults: {
+    camera: [],
+    count: 0
+  },
+
+  init: function cameraGroup_init() {
+    var cameraGroup=this;
+    $.extend(true,this,cameraGroup.defaults,cameraGroup.options);
+    cameraGroup.count=0;
+    $.each(cameraGroup.cameras,function(i,camera){
+      cameraGroup.count+=1+(camera.slaves||0);
+    });
+    $.each(cameraGroup.cameras,function(i,camera){
+      if (camera.slaves) {
+        var ipTable=camera.ip.split('.');
         var base=parseInt(ipTable.pop(),10);
         var net=ipTable.join('.')+'.';
-        for (var i=0; i<=settings.slaves; ++i) {
-          addCamera($.extend(true,{},settings,{
+        for (var i=0; i<=camera.slaves; ++i) {
+          cameraGroup.addCamera($.extend(true,{},camera,{
              master: net+base,
              ip: net+(base+i)
           }));
         }
       } else {
-        addCamera(settings);
+        cameraGroup.addCamera(camera);
       }
     });
-  });
-});
+  },
 
-function addCamera(settings) {
-  if (!camera_group[settings.group]) {
-    camera_group[settings.group]={
-      camera: []
-    };
-  }
-  camera_group[settings.group].camera.push(new Camera($.extend(true,{},settings,{
-    onload: function(){
-      var camera=this;
-      camera.isLoaded=true;
-      var count=0;
-      $.each(camera_group[settings.group].camera,function(i,camera){
-        if (camera.isLoaded) {
-          ++count;
-        }
-      });
-      if (count==camera_group[settings.group].camera.length) { 
-        cameraGroup_showStatus(settings.group);
-        camera_group[settings.group].loaded=true;
-        var remainingGroups=0;
-        $.each(camera_group,function(group_name,group){
-          ++remainingGroups;
-          if (group.loaded) {
-            --remainingGroups;
+  addCamera: function cameraGroup_addCamera(camera) {
+    var cameraGroup=this;
+    cameraGroup.camera.push(new Camera($.extend(true,{},camera,{
+      onload: function(){
+        var camera=this;
+        camera.isLoaded=true;
+        var count=0;
+        $.each(cameraGroup.camera,function(i,camera){
+          if (camera.isLoaded) {
+            ++count;
           }
         });
-        if (!remainingGroups) {
-          $.mobile.loading('hide'); // TODO per group
+        if (count==cameraGroup.camera.length) { 
+          cameraGroup.showStatus();
+          cameraGroup.loaded=true;
+          var remainingGroups=0;
+          $.each(cameraGroup_list,function(index,group){
+            ++remainingGroups;
+            if (group.loaded) {
+              --remainingGroups;
+            }
+          });
+          if (!remainingGroups) {
+            $.mobile.loading('hide'); // TODO per group
+          }
         }
       }
-    }
-  })));
-}
+    })));
+  },
 
-function cameraGroup_showStatus(group_name) {
-  var group=camera_group[group_name];
-  group.div_status=$('#'+group_name+'_status');
-  if (!group.div_status.length) {
-    group.div_status=$([
-        '<div id="'+group_name+'_status">',
-        '</div>'
-    ].join('\n'));
-    $('#camera_status').append(group.div_status);
+  showStatus: function cameraGroup_showStatus() {
+    var cameraGroup=this;
+    cameraGroup.div_status=$('#'+cameraGroup.name+'_status');
+    if (!cameraGroup.div_status.length) {
+      cameraGroup.div_status=$([
+          '<div id="'+cameraGroup.name+'_status">',
+          '</div>'
+      ].join('\n'));
+      $('#camera_status').append(cameraGroup.div_status);
+    }
+    $.each(cameraGroup.camera,function(index,camera) {
+      camera.showStatus(cameraGroup.div_status);
+    });
   }
-  $.each(group.camera,function(index,camera) {
-    camera.showStatus(group.div_status);
-  });
-}
+});
 
