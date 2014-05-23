@@ -31,15 +31,15 @@ $.extend(true,Camera.prototype,{
       slaves: {},
       histogram: {
         isLoaded: false,
-        onload: function(e) {
+        onload: function histogram_onload(e) {
           var histogram=this;
           histogram.camera.loaded(histogram);
         }
       },
-      onload: function() {
+      onload: function camera_onload() {
       }
     },
-    init: function(){
+    init: function camera_init(){
       var camera=this;
       $.extend(true,camera,camera.defaults,camera.options);
       if (!camera.histogram.img) {
@@ -51,13 +51,14 @@ $.extend(true,Camera.prototype,{
 
     },
     
-    loaded: function(obj) {
+    loaded: function camera_loaded(obj) {
       var camera=this;
       var allDone=true;
       if (camera[obj.constructor.name.toLowerCase()].isLoaded) {
-        console.log(obj.constructor.name+' already loaded !');
+        console.log(obj.constructor.name+' already loaded for camera '+camera.group+'/'+camera.ip+' !');
         return;
       }
+      // check if object of type "obj.constructor.name" (eg histogram) is loaded for every camera of the same group as "camera"
       camera[obj.constructor.name.toLowerCase()].isLoaded=true;
       $.each(camera,function(key,value){
         if (typeof(camera[key]=="object") && camera[key].isLoaded === false) {
@@ -72,24 +73,28 @@ $.extend(true,Camera.prototype,{
       }
     },
       
-    show_status: function(container) {
-      var cam=this;
-      var id=cam.ip+'_status';
-      var div=$('#'+id);
+    showStatus: function camera_showStatus(container) {
+      var camera=this;
+      var id=camera.ip+'_status';
+      var div=$('#'+id,container);
       if (!div.length) {
-        $(container).append($([
+        div=$([
           '<div class="camera_status" id="'+id+'">',
-          '<div class="histogram" />',
           '</div>'
-        ].join('\n')));
-        $('.histogram',div).append(cam.histogram.img);
+        ].join('\n'));
+        $(container).append(div);
+        $.each(camera,function(key,value){
+          if (typeof(camera[key]=="object") && typeof(camera[key].showStatus) === "function") {
+            camera[key].showStatus(div);
+          }
+        });
       }
       return div;
     },
-    gps_imu_log_start: function() {
+    log_start: function camera_logStart() {
       
     },
-    gps_imu_log_stop: function() {
+    log_stop: function camera_logStop() {
     }
 });
 
@@ -115,24 +120,47 @@ $.extend(true,Histogram.prototype,{
       draw: 2,
       colors: 41
     },
-    onload: function(e){
+    onload: function histogram_onload(e){
     }
   },
 
-  init: function(){
+  init: function histogram_init(){
     var histogram=this;
     $.extend(true,histogram,histogram.defaults,histogram.options);
     histogram.offscreen_img=new Image();
-    $(histogram.offscreen_img).on('load',function(e){
-      histogram.img.src=histogram.offscreen_img.src;
-      histogram.onload.call(histogram,e);
+    
+    $(histogram.offscreen_img)
+    .on('load',function(e){
+     histogram.img.src=histogram.offscreen_img.src;
+     histogram.onload.call(histogram,e);
     })
+    .on('error',function(e){
+      histogram.img.src=histogram.img_loadError;
+      histogram.onload.call(histogram,e);
+    });
+
     histogram.update(histogram.settings);
   },
 
-  update: function(settings) {
+  update: function histogram_update(settings) {
     settings['_']=timeStamp();
     var query=toQueryString($.extend({},this.settings,settings));
     this.offscreen_img.src='http://'+this.camera.ip+this.url+'?'+query;
+  },
+
+  showStatus: function histogram_showStatus(container) {
+    var histogram=this;
+    var camera=histogram.camera;
+    var div=$('.histogram',container);
+    if (!div.length) {
+      div=$([
+          '<div class="histogram">',
+          '  <img src="'+camera.histogram.img.src+'">',
+          '</div>'
+      ].join('\n'));
+      $(container).append(div);
+    } else {
+      $('img',div).attr('src',camera.histogram.img.src);
+    }
   }
 });

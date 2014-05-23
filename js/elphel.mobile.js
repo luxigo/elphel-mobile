@@ -62,6 +62,11 @@ $(document).on('pagecreate','#status',function(e){
 });
 
 function addCamera(settings) {
+  if (!camera_group[settings.group]) {
+    camera_group[settings.group]={
+      camera: []
+    };
+  }
   camera_group[settings.group].camera.push(new Camera($.extend(true,{},settings,{
     onload: function(){
       var camera=this;
@@ -72,7 +77,7 @@ function addCamera(settings) {
           ++count;
         }
       });
-      if (count==camera_group[settings.group].count) { 
+      if (count==camera_group[settings.group].camera.length) { 
         cameraGroup_showStatus(settings.group);
         camera_group[settings.group].loaded=true;
         var remainingGroups=0;
@@ -82,7 +87,7 @@ function addCamera(settings) {
             --remainingGroups;
           }
         });
-        if (done) {
+        if (!remainingGroups) {
           $.mobile.loading('hide'); // TODO per group
         }
       }
@@ -91,6 +96,17 @@ function addCamera(settings) {
 }
 
 function cameraGroup_showStatus(group_name) {
-
+  var group=camera_group[group_name];
+  group.div_status=$('#'+group_name+'_status');
+  if (!group.div_status.length) {
+    group.div_status=$([
+        '<div id="'+group_name+'_status">',
+        '</div>'
+    ].join('\n'));
+    $('#camera_status').append(group.div_status);
+  }
+  $.each(group.camera,function(index,camera) {
+    camera.showStatus(group.div_status);
+  });
 }
 

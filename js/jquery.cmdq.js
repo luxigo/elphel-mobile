@@ -44,7 +44,7 @@
           if (!cmdq.length) {
             cmdq.mode.running=false;
             cmdq.callback();
-            return:
+            return;
           }
           var job=cmdq.shift();
           try {
@@ -61,6 +61,6 @@
         }
     });
 
-    $.cmdq=cmdq;
+    $.cmdq=CmdQ;
 
 })(jQuery);
